@@ -1,4 +1,6 @@
 
+const REALLY_SEND_SMS_YOU_DUMB = false ;
+
 var twilio = require("./node_modules/twilio/lib");
 var express = require('express');
 var parser = require('body-parser');
@@ -44,16 +46,15 @@ server.listen(3000,function(){
                 
             if(!!peopleArray[data.forMobile]){
                     var currtime = new Date();
-                    if(peopleArray[data.forMobile].finishtime <= currtime.getTime()){
-                        
+                    if(peopleArray[data.forMobile].finishtime > currtime.getTime()){
+                        //  finishtime is not come yet so please get the ambulance in bucket
                         var latLongObj = peopleArray[data.forMobile] ;
-                        
                         var arr = splitStringArray(data.latLongOfAmbulance);
                         var dur = getDuration(latLongObj.oglat , latLongObj.oglong , arr[0] , arr[1]);
-                        
                         peopleArray[data.forMobile].ambulances.push({'id':socket.id , 'duration': dur});
                     }
                     else{   
+                        // time is finished so please blast
                          var socs = peopleArray[data.forMobile].ambulances ;
                          if(sizeof(socs) != 0){
                             for (var i in socs){
@@ -104,7 +105,7 @@ app.post('/sms' , function(req , res) {
         var timerFunction = function(msgFromNumber){
             var socs = peopleArray[msgFromNumber].ambulances ;
             if(sizeof(socs) == 0){
-                 sendMessageWithBody(msgFromNumber,'No ambulances found Sorry')                    
+                 sendMessageWithBody(msgFromNumber,'No ambulances found Sorry marr jao')                    
             }; 
         };
         //console.log("about to emit");
@@ -119,6 +120,7 @@ app.post('/sms' , function(req , res) {
     });
     
 function sendMessage(toNum , from) {
+   if(REALLY_SEND_SMS_YOU_DUMB){
     client.messages.create({
         body: from + ' met with an accident',
         to: toNum,  // Text this number
@@ -128,18 +130,30 @@ function sendMessage(toNum , from) {
                 console.log(err.message);   
         }
     });
+    }else{
+        console.log('Lets Assume sms is sent : ');
+        console.log(`sent to : `+toNum+`
+        \n sent this : `+body);
+    }
+
 }
 
 function sendMessageWithBody(toNum , body) {
-    client.messages.create({
-        body: 'Ambulance service: '+body,
-        to: toNum,  // Text this number
-        from: '+16122236429' // From a valid Twilio number
-        }, function(err, message) {
-            if(err){
-                console.log(err.message);   
-        }
-    });
+    if(REALLY_SEND_SMS_YOU_DUMB){
+        client.messages.create({
+            body: 'Ambulance service: '+body,
+            to: toNum,  // Text this number
+            from: '+16122236429' // From a valid Twilio number
+            }, function(err, message) {
+                if(err){
+                    console.log(err.message);   
+            }
+        });
+    }else{
+        console.log('Lets Assume sms is sent : ');
+        console.log(`sent to : `+toNum+`
+        \n sent this : `+body);
+    }
 }
 
 function decodebase64(base64) {
